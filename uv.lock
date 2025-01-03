@@ -1504,7 +1504,7 @@ wheels = [
 ]
 
 [[distribution]]
-name = "timeseries-algorithms"
+name = "timeseries-algorithm"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

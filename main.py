@@ -6,16 +6,16 @@ import joblib
 import pandas as pd
 from typing import Tuple
 
-from src.timeseries_algorithm.data.dataloader import load_sample_data
-from src.timeseries_algorithm.data.dataset import TimeSeriesDataset
-from src.timeseries_algorithm.features.create_features import (
+from timeseries_algorithm.data.dataloader import load_sample_data
+from timeseries_algorithm.data.dataset import TimeSeriesDataset
+from timeseries_algorithm.features.create_features import (
     create_lag_features,
     create_rolling_features,
     add_time_features
 )
-from src.timeseries_algorithm.models.arima.arima import ARIMAModel
-from src.timeseries_algorithm.utils.metrics import calculate_metrics
-from src.timeseries_algorithm.utils.logging import setup_logger
+from timeseries_algorithm.models.arima.arima import ARIMAModel
+from timeseries_algorithm.utils.metrics import calculate_metrics
+from timeseries_algorithm.utils.logging import setup_logger
 
 def load_and_create_dataset(target_col: str, date_col: str) -> TimeSeriesDataset:
     """
