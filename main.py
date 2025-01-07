@@ -13,7 +13,7 @@ from timeseries_algorithm.features.create_features import (
     create_rolling_features,
     add_time_features
 )
-from timeseries_algorithm.models.arima.arima import ARIMAModel
+from timeseries_algorithm.models.arima_model import ARIMAXModel
 from timeseries_algorithm.utils.metrics import calculate_metrics
 from timeseries_algorithm.utils.logging import setup_logger
 
@@ -52,7 +52,7 @@ def build_model(model_name: str):
     指定されたモデル名に応じてモデルインスタンスを生成する。
     """
     if model_name == "arima":
-        return ARIMAModel()
+        return ARIMAXModel()
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
