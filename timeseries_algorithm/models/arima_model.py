@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from pmdarima import auto_arima
+from arch import arch_model
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.statespace.kalman_filter import KalmanFilter
@@ -312,3 +313,52 @@ class TimeVaryingARModel(BaseTimeSeriesModel):
             initial_state=np.zeros(self.k_states),
             initial_state_cov=np.eye(self.k_states) * 10
         )
+
+
+class ARIMAXGARCHHybridModel(BaseTimeSeriesModel):
+    """
+    ARIMAXで平均値過程を予測し、残差にGARCHを適用するハイブリッド例
+    """
+    def __init__(self, arima_order=(1,1,1), garch_order=(1,1)):
+        self.arima_order = arima_order
+        self.garch_order = garch_order
+        self.arima_ = None
+        self.garch_ = None
+        self.resid_ = None
+
+    def fit(self, X, y):
+        # 1) ARIMAX
+        self.arima_ = ARIMA(endog=y, exog=X, order=self.arima_order).fit()
+        self.resid_ = self.arima_.resid
+        # 2) GARCH
+        self.garch_ = arch_model(self.resid_, p=self.garch_order[0], q=self.garch_order[1]).fit(disp='off')
+
+    def predict(self, X):
+        # 平均値予測
+        mean_pred = self.arima_.forecast(steps=len(X), exog=X)
+        # 分散予測なども可能だが簡略化
+        return mean_pred
+    
+
+class ARIMAErrorsModel(BaseTimeSeriesModel):
+    """
+    回帰モデルの残差にARIMAをあてる例（簡略）
+    """
+    def __init__(self, arima_order=(1,1,1)):
+        self.arima_order = arima_order
+        self.reg_model_ = None  # ここでは省略
+        self.arima_model_ = None
+        self.resid_ = None
+
+    def fit(self, X, y):
+        # 1) 回帰モデルをフィット (省略: self.reg_model_)
+        # 2) 残差に対してARIMA
+        resid = y  # 本来は y - reg_model.predict(X)
+        self.arima_model_ = ARIMA(resid, order=self.arima_order).fit()
+
+    def predict(self, X):
+        steps = len(X)
+        # 回帰モデルによる予測(省略)
+        reg_pred = np.zeros(steps)
+        resid_pred = self.arima_model_.forecast(steps=steps)
+        return reg_pred + resid_pred

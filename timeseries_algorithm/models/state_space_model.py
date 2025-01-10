@@ -1,9 +1,120 @@
 import joblib
 import numpy as np
 import pandas as pd
+from typing import Any, Optional
+from orbit.models import LGT, DLT
 from statsmodels.tsa.statespace.kalman_filter import KalmanFilter
+from statsmodels.tsa.statespace.structural import UnobservedComponents
 from filterpy.monte_carlo import systematic_resample
 from .base_model import BaseTimeSeriesModel
+
+
+class LocalTrendModel(BaseTimeSeriesModel):
+    """
+    トレンド成分のみを持つ状態空間モデル。
+    """
+
+    def __init__(self, trend='local linear'):
+        """
+        Parameters
+        ----------
+        trend : str
+            トレンドのタイプ。'local level' または 'local linear'
+        """
+        self.trend = trend
+        self.model_ = None
+        self.results_ = None
+
+    def fit(self, X, y):
+        """
+        モデルを学習する。Xは外因性変数として無視。
+        """
+        self.model_ = UnobservedComponents(endog=y, level=self.trend)
+        self.results_ = self.model_.fit(disp=False)
+
+    def predict(self, X):
+        """
+        学習済みモデルを用いて予測する。
+        Xは未来の外因性変数として無視。
+        """
+        if self.results_ is None:
+            raise ValueError("Model has not been fitted yet.")
+
+        forecast_steps = len(X)
+        forecast = self.results_.get_forecast(steps=forecast_steps)
+        return forecast.predicted_mean.values
+
+    def save_model(self, filepath: str):
+        """
+        モデルを保存する。
+        """
+        if self.results_ is None:
+            raise ValueError("No fitted model to save.")
+        joblib.dump(self.results_, filepath)
+
+    def load_model(self, filepath: str):
+        """
+        モデルをロードする。
+        """
+        self.results_ = joblib.load(filepath)
+
+
+class DynamicLinearModel(BaseTimeSeriesModel):
+    """
+    ダイナミック線形モデルを用いたカスタム状態空間モデル。
+    トレンド、季節性、回帰変数を組み合わせたモデル。
+    """
+
+    def __init__(self, trend='local linear', seasonal_period=12, exog=None):
+        """
+        Parameters
+        ----------
+        trend : str
+            トレンドのタイプ。
+        seasonal_period : int
+            季節周期。
+        exog : array-like or None
+            外因性変数。
+        """
+        self.trend = trend
+        self.seasonal_period = seasonal_period
+        self.exog = exog
+        self.model_ = None
+        self.results_ = None
+
+    def fit(self, X, y):
+        """
+        モデルを学習する。Xは外因性変数として扱う。
+        """
+        self.model_ = UnobservedComponents(endog=y, level=self.trend,
+                                           seasonal=self.seasonal_period,
+                                           exog=X)
+        self.results_ = self.model_.fit(disp=False)
+
+    def predict(self, X):
+        """
+        学習済みモデルを用いて予測する。
+        """
+        if self.results_ is None:
+            raise ValueError("Model has not been fitted yet.")
+
+        forecast_steps = len(X)
+        forecast = self.results_.get_forecast(steps=forecast_steps, exog=X)
+        return forecast.predicted_mean.values
+
+    def save_model(self, filepath: str):
+        """
+        モデルを保存する。
+        """
+        if self.results_ is None:
+            raise ValueError("No fitted model to save.")
+        joblib.dump(self.results_, filepath)
+
+    def load_model(self, filepath: str):
+        """
+        モデルをロードする。
+        """
+        self.results_ = joblib.load(filepath)
 
 class KalmanFilterModel(BaseTimeSeriesModel):
     """
@@ -131,6 +242,146 @@ class KalmanFilterModel(BaseTimeSeriesModel):
             initial_state=np.zeros(self.k_states),
             initial_state_cov=np.eye(self.k_states) * 10
         )
+
+class LGTModel(BaseTimeSeriesModel):
+    """
+    OrbitライブラリのLocal Global Trend (LGT)モデルを用いた時系列予測。
+    """
+
+    def __init__(
+        self,
+        seasonality: Optional[int] = None,
+        seed: int = 42,
+        verbose: bool = False
+    ) -> None:
+        """
+        LGTモデルの初期化。
+
+        Args:
+            seasonality (Optional[int], optional): 季節周期。デフォルトはNone（季節性なし）。
+            seed (int, optional): 乱数シード。デフォルトは42。
+            verbose (bool, optional): 学習時にログを表示するかどうか。デフォルトはFalse。
+        """
+        super().__init__()
+        self.seasonality = seasonality
+        self.seed = seed
+        self.verbose = verbose
+        self.model = LGT(
+            seasonality=seasonality,
+            seed=seed,
+            verbose=verbose
+        )
+        self.fitted = False
+
+    def fit(self, X: pd.DataFrame, y: Optional[Any] = None) -> None:
+        """
+        モデルを学習する。
+
+        Args:
+            X (pd.DataFrame): 'ds' カラムと 'y' カラムを含むトレーニングデータ。
+            y (Optional[Any], optional): 無視される。OrbitではX内の 'y' を用いる。
+        """
+        self.model.fit(X)
+        self.fitted = True
+
+    def predict(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        予測を行う。
+
+        Args:
+            X (pd.DataFrame): 予測に使用するデータ。'ds' カラムを含む。
+
+        Returns:
+            pd.DataFrame: 予測結果。
+        """
+        if not self.fitted:
+            raise ValueError("Model has not been fitted yet.")
+        return self.model.predict(X)
+
+    def save_model(self, filepath: str) -> None:
+        """
+        モデルを保存する。
+
+        Args:
+            filepath (str): 保存先のファイルパス。
+        """
+        joblib.dump(self.model, filepath)
+
+    def load_model(self, filepath: str) -> None:
+        """
+        モデルをロードする。
+        """
+        self.model = joblib.load(filepath)
+        self.fitted = True
+
+
+class DLTModel(BaseTimeSeriesModel):
+    """
+    OrbitライブラリのDamped Local Trend (DLT)モデルを用いた時系列予測。
+    """
+
+    def __init__(
+        self,
+        seasonality: Optional[int] = None,
+        seed: int = 42,
+        verbose: bool = False
+    ) -> None:
+        """
+        DLTモデルの初期化。
+
+        Args:
+            seasonality (Optional[int], optional): 季節周期。デフォルトはNone。
+            seed (int, optional): 乱数シード。デフォルトは42。
+            verbose (bool, optional): 学習時にログを表示するかどうか。デフォルトはFalse。
+        """
+        super().__init__()
+        self.seasonality = seasonality
+        self.seed = seed
+        self.verbose = verbose
+        self.model = DLT(
+            seasonality=seasonality,
+            seed=seed,
+            verbose=verbose
+        )
+        self.fitted = False
+
+    def fit(self, X: pd.DataFrame, y: Optional[Any] = None) -> None:
+        """
+        モデルを学習する。
+
+        Args:
+            X (pd.DataFrame): 'ds' カラムと 'y' カラムを含むトレーニングデータ。
+            y (Optional[Any], optional): 無視される。OrbitではX内の 'y' を用いる。
+        """
+        self.model.fit(X)
+        self.fitted = True
+
+    def predict(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        予測を行う。
+
+        Args:
+            X (pd.DataFrame): 予測に使用するデータ。'ds' カラムを含む。
+
+        Returns:
+            pd.DataFrame: 予測結果。
+        """
+        if not self.fitted:
+            raise ValueError("Model has not been fitted yet.")
+        return self.model.predict(X)
+
+    def save_model(self, filepath: str) -> None:
+        """
+        モデルを保存する。
+        """
+        joblib.dump(self.model, filepath)
+
+    def load_model(self, filepath: str) -> None:
+        """
+        モデルをロードする。
+        """
+        self.model = joblib.load(filepath)
+        self.fitted = True
 
 
 class ParticleFilterModel(BaseTimeSeriesModel):

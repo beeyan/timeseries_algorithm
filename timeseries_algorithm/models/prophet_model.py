@@ -1,10 +1,7 @@
-# prophet_model.py
-
 import joblib
 import numpy as np
 import pandas as pd
 from typing import Any, Optional
-import mlflow
 from prophet import Prophet
 from neuralprophet import NeuralProphet
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
@@ -24,9 +21,7 @@ class ProphetModel(BaseTimeSeriesModel):
                  seasonality_mode='additive', 
                  yearly_seasonality=True, 
                  weekly_seasonality=True, 
-                 daily_seasonality=False, 
-                 use_mlflow=True, 
-                 experiment_name="Prophet_Model_Experiment"):
+                 daily_seasonality=False):
         """
         Parameters
         ----------
@@ -46,17 +41,8 @@ class ProphetModel(BaseTimeSeriesModel):
             週間季節性の有無。
         daily_seasonality : bool
             日間季節性の有無。
-        use_mlflow : bool
-            MLflowロギングを有効にするかどうか。
-        experiment_name : str
-            MLflowの実験名。
         """
         super().__init__()
-        self.use_mlflow = use_mlflow
-        self.experiment_name = experiment_name
-        if self.use_mlflow:
-            mlflow.set_experiment(self.experiment_name)
-        
         self.growth = growth
         self.changepoint_prior_scale = changepoint_prior_scale
         self.seasonality_prior_scale = seasonality_prior_scale
@@ -89,39 +75,8 @@ class ProphetModel(BaseTimeSeriesModel):
         y : None
             Prophetは 'y' カラムをデータフレーム内で扱うため、yは無視。
         """
-        if self.use_mlflow:
-            with mlflow.start_run():
-                # ハイパーパラメータのログ
-                mlflow.log_param("growth", self.growth)
-                mlflow.log_param("changepoint_prior_scale", self.changepoint_prior_scale)
-                mlflow.log_param("seasonality_prior_scale", self.seasonality_prior_scale)
-                mlflow.log_param("holidays_prior_scale", self.holidays_prior_scale)
-                mlflow.log_param("seasonality_mode", self.seasonality_mode)
-                mlflow.log_param("yearly_seasonality", self.yearly_seasonality)
-                mlflow.log_param("weekly_seasonality", self.weekly_seasonality)
-                mlflow.log_param("daily_seasonality", self.daily_seasonality)
-
-                # Prophetの学習
-                self.model.fit(X)
-                self.fitted = True
-
-                # トレーニングデータに対する予測
-                future = self.model.make_future_dataframe(periods=0)
-                forecast = self.model.predict(future)
-
-                # メトリクスの計算
-                metrics = self._calculate_metrics(X, forecast)
-                for metric_name, metric_value in metrics.items():
-                    mlflow.log_metric(metric_name, metric_value)
-
-                # モデルの保存
-                model_path = "prophet_model.pkl"
-                self.save_model(model_path)
-                mlflow.log_artifact(model_path)
-
-        else:
-            self.model.fit(X)
-            self.fitted = True
+        self.model.fit(X)
+        self.fitted = True
 
     def predict(self, X, periods=5):
         """

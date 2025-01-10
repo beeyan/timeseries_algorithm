@@ -44,3 +44,27 @@ class GARCHModel(BaseTimeSeriesModel):
         forecast = self.res_.forecast(horizon=steps)
         # 分散予測を返す例
         return forecast.variance.values[-1]
+    
+
+class EGARCHModel(BaseTimeSeriesModel):
+    """
+    EGARCHモデル
+    """
+    def __init__(self, p=1, q=1):
+        self.p = p
+        self.q = q
+        self.model_ = None
+        self.res_ = None
+
+
+    def fit(self, X, y):
+        self.model_ = arch_model(y, vol='EGARCH', p=self.p, q=self.q)
+        self.res_ = self.model_.fit(disp='off')
+
+    def predict(self, X):
+        if self.res_ is None:
+            raise ValueError("Model is not fitted yet.")
+        steps = len(X)
+        forecast = self.res_.forecast(horizon=steps)
+        # 分散予測を返す例
+        return forecast.variance.values[-1]

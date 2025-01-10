@@ -2321,6 +2321,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pmdarima" },
     { name = "prophet" },
+    { name = "pytorch-lightning" },
     { name = "scikit-learn" },
     { name = "statsmodels" },
     { name = "torch" },

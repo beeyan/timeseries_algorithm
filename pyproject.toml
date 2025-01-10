@@ -20,6 +20,7 @@ dependencies = [
     "filterpy>=1.4.5",
     "neuralprophet>=0.5.0",
     "orbit-ml>=1.1.4.9",
+    "pytorch-lightning>=1.7.4",
 ]
 
 [build-system]
