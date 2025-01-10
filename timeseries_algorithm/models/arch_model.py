@@ -26,12 +26,15 @@ class GARCHModel(BaseTimeSeriesModel):
     """
     GARCH(1,1)モデルの例
     """
-    def __init__(self):
+    def __init__(self, p=1, q=1):
+        self.p = p
+        self.q = q
         self.model_ = None
         self.res_ = None
 
+
     def fit(self, X, y):
-        self.model_ = arch_model(y, vol='GARCH', p=1, q=1)
+        self.model_ = arch_model(y, vol='GARCH', p=self.p, q=self.q)
         self.res_ = self.model_.fit(disp='off')
 
     def predict(self, X):
