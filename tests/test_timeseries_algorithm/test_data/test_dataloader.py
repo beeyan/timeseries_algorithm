@@ -69,11 +69,11 @@ def test_load_sample_data():
     assert "sales" in df.columns
 
     # 行数の確認
-    assert len(df) == 100
+    assert len(df) == 730
 
     # 日付範囲の確認
-    expected_start = pd.Timestamp('2022-01-01')
-    expected_end = pd.Timestamp('2022-04-10')  # 2022-01-01 + 99日
+    expected_start = pd.Timestamp('2021-01-01')
+    expected_end = pd.Timestamp('2022-12-31')  # 2022-01-01 + 99日
     assert df['date'].iloc[0] == expected_start
     assert df['date'].iloc[-1] == expected_end
 
