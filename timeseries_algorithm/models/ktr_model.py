@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 from typing import Any, Optional
 from orbit.models import KTR
-from timeseries_algorithm import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 class KTRModel(BaseTimeSeriesModel):
     """

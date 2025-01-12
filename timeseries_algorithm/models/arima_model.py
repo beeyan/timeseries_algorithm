@@ -8,7 +8,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.statespace.kalman_filter import KalmanFilter
 
-from .base_model import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 class ARIMAXModel(BaseTimeSeriesModel):
     """

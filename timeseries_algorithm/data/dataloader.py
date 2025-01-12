@@ -16,7 +16,7 @@ def load_sample_data() -> pd.DataFrame:
     import numpy as np
     import pandas as pd
 
-    dates = pd.date_range(start='2022-01-01', periods=100, freq='D')
-    values = np.random.rand(100) * 100
+    dates = pd.date_range(start='2021-01-01', periods=730, freq='D')
+    values = np.random.rand(730) * 100
     data = pd.DataFrame({"date": dates, "sales": values})
     return data

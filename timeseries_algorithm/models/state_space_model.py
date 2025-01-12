@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 from typing import Any, Optional
 from orbit.models import LGT, DLT
+from statsmodels.tsa.regime_switching.markov_regression import MarkovRegression
 from statsmodels.tsa.statespace.kalman_filter import KalmanFilter
 from statsmodels.tsa.statespace.structural import UnobservedComponents
 from filterpy.monte_carlo import systematic_resample
-from .base_model import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 
 class LocalTrendModel(BaseTimeSeriesModel):
@@ -551,3 +552,46 @@ class ParticleFilterModel(BaseTimeSeriesModel):
         self.resample_threshold = data["resample_threshold"]
         self.particles = data["particles"]
         self.weights = data["weights"]
+
+
+class MarkovSwitchingModel(BaseTimeSeriesModel):
+    """
+    マルコフスイッチングを取り入れた回帰モデル。
+    """
+
+    def __init__(self, k_regimes=2, trend='c', exog=None):
+        """
+        Parameters
+        ----------
+        k_regimes : int
+            レジーム数
+        trend : str
+            回帰モデルのトレンド ('c' for constant, 'nc' for no constant)
+        exog : array-like or None
+            外因性変数
+        """
+        self.k_regimes = k_regimes
+        self.trend = trend
+        self.exog = exog
+        self.model_ = None
+        self.results_ = None
+
+    def fit(self, X, y):
+        self.model_ = MarkovRegression(endog=y, k_regimes=self.k_regimes,
+                                       trend=self.trend, exog=X)
+        self.results_ = self.model_.fit(disp=False)
+
+    def predict(self, X):
+        if self.results_ is None:
+            raise ValueError("Model has not been fitted yet.")
+        forecast_steps = len(X)
+        forecast = self.results_.get_forecast(steps=forecast_steps, exog=X)
+        return forecast.predicted_mean.values
+
+    def save_model(self, filepath: str):
+        if self.results_ is None:
+            raise ValueError("No fitted model to save.")
+        joblib.dump(self.results_, filepath)
+
+    def load_model(self, filepath: str):
+        self.results_ = joblib.load(filepath)

@@ -13,7 +13,7 @@ from timeseries_algorithm.features.create_features import (
     create_rolling_features,
     add_time_features
 )
-from timeseries_algorithm.models.arima_model import ARIMAXModel
+from timeseries_algorithm.models.oned_cnn_model import CNNModel
 from timeseries_algorithm.utils.metrics import calculate_metrics
 from timeseries_algorithm.utils.logging import setup_logger
 
@@ -51,8 +51,8 @@ def build_model(model_name: str):
     """
     指定されたモデル名に応じてモデルインスタンスを生成する。
     """
-    if model_name == "arima":
-        return ARIMAXModel()
+    if model_name == "cnn":
+        return CNNModel()
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
@@ -96,6 +96,7 @@ def main(args):
     train_data, val_data = split_data(data_fe, args.train_val_split_date)
     X_train, y_train = dataset.get_features_and_target(train_data)
     X_val, y_val     = dataset.get_features_and_target(val_data)
+    logger.info(f"tensor shape:X_train: {X_train.shape} y_train: {y_train.shape} X_val: {X_val.shape} y_val: {y_val.shape}")
 
     # 4. モデル作成
     logger.info(f"Building model: {args.model}")
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--target_col", type=str, default="sales", help="Name of the target column.")
     parser.add_argument("--date_col", type=str, default="date", help="Name of the date column.")
     parser.add_argument("--train_val_split_date", type=str, default="2022-01-01", help="Date to split train/val.")
-    parser.add_argument("--model", type=str, default="arima", help="Which model to use for training.")
+    parser.add_argument("--model", type=str, default="cnn", help="Which model to use for training.")
     parser.add_argument("--save_model", action="store_true", help="Whether to save the trained model.")
     args = parser.parse_args()
 

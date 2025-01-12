@@ -1,5 +1,5 @@
 from statsmodels.tsa.forecasting.theta import ThetaModel
-from .base_model import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 class ThetaMethodModel(BaseTimeSeriesModel):
     """

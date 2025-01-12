@@ -1,5 +1,5 @@
 from arch import arch_model
-from .base_model import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 class ARCHModel(BaseTimeSeriesModel):
     """

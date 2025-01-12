@@ -5,7 +5,7 @@ from typing import Any, Optional
 from prophet import Prophet
 from neuralprophet import NeuralProphet
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
-from timeseries_algorithm.models.base_model import BaseTimeSeriesModel
+from timeseries_algorithm.models.interface import BaseTimeSeriesModel
 
 class ProphetModel(BaseTimeSeriesModel):
     """

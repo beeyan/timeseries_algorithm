@@ -1,7 +1,7 @@
 import joblib
 import pandas as pd
 from statsmodels.tsa.api import VAR
-from .base_model import BaseTimeSeriesModel
+from .interface import BaseTimeSeriesModel
 
 class VARModel(BaseTimeSeriesModel):
     """
